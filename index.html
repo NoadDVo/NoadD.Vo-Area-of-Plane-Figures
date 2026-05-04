@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoadD.Vo Area of Plane Region Studio</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #0f1115;
+            --bg-sidebar: #181a20;
+            --bg-card: #22252b;
+            --border-color: #2a2d35;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary: #ff7f50; /* Màu Cam San hô để phân biệt với 2 app kia */
+            --primary-hover: #ff9f43;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --purple: #9c88ff;
+            --math-bg: rgba(0,0,0,0.3);
+            --header-h: 56px;
+        }
+
+        /* Chế độ Sáng / Máy Chiếu */
+        body.light-theme {
+            --bg-main: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --bg-card: #f1f5f9;
+            --border-color: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --math-bg: rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            margin: 0; overflow: hidden; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background-color: var(--bg-main); color: var(--text-main); 
+            transition: background-color 0.3s, color 0.3s;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        /* Top Navbar */
+        #top-navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            height: var(--header-h); padding: 0 24px; background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color); z-index: 100; transition: background-color 0.3s;
+        }
+        .nav-brand { font-size: 1.25rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px; }
+        .nav-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        .nav-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .nav-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* Bố cục chính */
+        #app-layout { display: flex; flex: 1; width: 100vw; overflow: hidden; }
+
+        /* Thanh bên (Sidebar) */
+        aside { background: var(--bg-sidebar); display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s; position: relative; z-index: 10; overflow: hidden; }
+        
+        #left-sidebar { width: 350px; min-width: 350px; border-right: 1px solid var(--border-color); }
+        #left-sidebar.collapsed { width: 0; min-width: 0; border-right: none; opacity: 0; }
+        
+        #right-sidebar { width: 380px; min-width: 380px; border-left: 1px solid var(--border-color); }
+        #right-sidebar.collapsed { width: 0; min-width: 0; border-left: none; opacity: 0; }
+
+        .sidebar-inner { width: 100%; min-width: 340px; display: flex; flex-direction: column; height: 100%; }
+
+        /* Vùng hiển thị 3D/2D Chính */
+        #center-view { flex: 1; position: relative; background: var(--bg-main); overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
+        #canvas-container { width: 100%; height: 100%; display: block; }
+
+        .toggle-btn { position: absolute; top: 20px; z-index: 50; background: var(--bg-sidebar); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        .toggle-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+        #toggleLeftBtn { left: 20px; } #toggleRightBtn { right: 20px; }
+
+        /* Thanh điều khiển nổi */
+        .floating-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(24, 26, 32, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: 50px; padding: 10px 24px; display: flex; align-items: center; gap: 20px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: var(--text-main); transition: background-color 0.3s, box-shadow 0.3s; }
+        body.light-theme .floating-controls { background: rgba(255, 255, 255, 0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .float-item { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+        .float-divider { width: 1px; height: 24px; background: var(--border-color); }
+        .floating-controls input[type="range"] { width: 120px; margin: 0; cursor: pointer; accent-color: var(--primary); transition: opacity 0.3s; }
+        .floating-controls input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; margin: 0;}
+        .float-btn { background: var(--primary); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; font-size: 14px; }
+        .float-btn:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .float-btn.play { background: var(--danger); }
+        .float-btn.fit { background: var(--purple); }
+        .float-btn.reset { background: var(--success); }
+
+        .sidebar-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-sidebar); position: sticky; top: 0; z-index: 5; transition: background-color 0.3s; display: flex; justify-content: space-between; align-items: center;}
+        .sidebar-header h3 { margin: 0; font-size: 15px; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+        /* Bảng nhập nhanh */
+        .quick-paste-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px; transition: background-color 0.3s, border-color 0.3s; }
+        .quick-paste-box textarea { width: 100%; height: 70px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; resize: vertical; font-family: 'Fira Code', monospace; font-size: 12px; transition: border-color 0.2s, background-color 0.3s, color 0.3s; }
+        .quick-paste-box textarea:focus { outline: none; border-color: var(--primary); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Cards */
+        .func-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; transition: transform 0.2s, background-color 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .func-card:hover { border-color: rgba(255, 127, 80, 0.5); }
+        .func-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; color: var(--text-main); font-size: 14px; flex-wrap: wrap; gap: 8px;}
+        .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; padding: 2px 6px; transition: 0.2s; border-radius: 4px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .delete-btn:hover { color: var(--danger); background: rgba(255, 71, 87, 0.1); }
+
+        /* Inputs */
+        .input-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .input-row label { width: 80px; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        input[type="text"], input[type="number"], select { flex-grow: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-family: 'Fira Code', monospace; font-size: 13px; width: 100%; transition: border-color 0.2s, background-color 0.3s, color 0.3s; }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: var(--primary); }
+        select { font-family: 'Segoe UI', sans-serif; cursor: pointer; }
+        
+        .bounds-row { display: flex; justify-content: space-between; gap: 12px; }
+        .bounds-row .input-row { width: 48%; margin-bottom: 0; }
+        .bounds-row .input-row label { width: 40px; }
+        input[type="color"] { width: 32px; height: 32px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: none; }
+
+        /* Buttons */
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        button.action-btn { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        button.action-btn.secondary { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
+        button.action-btn.secondary:hover { background: var(--border-color); }
+        button.action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        button.action-btn:active { transform: translateY(0); }
+        button.action-btn.primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); }
+        button.action-btn.graph { background: linear-gradient(135deg, var(--purple) 0%, #8c7ae6 100%); width: 100%; grid-column: span 2; }
+        button.action-btn.latex { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
+
+        /* Results & Scratchpad */
+        .result-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; transition: background-color 0.3s; margin-bottom: 16px; }
+        .result-title { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;}
+        .math-display { font-size: 15px; margin: 12px 0; color: var(--text-main); padding: 10px; background: var(--math-bg); border-radius: 6px; text-align: center; overflow-x: auto; transition: background-color 0.3s, color 0.3s;}
+        .math-display.vol { border-left: 4px solid var(--success); }
+        .math-display.area { border-left: 4px solid var(--warning); }
+
+        .scratchpad { width: 100%; height: 100px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; resize: vertical; font-family: inherit; font-size: 13px; transition: border-color 0.2s, background-color 0.3s, color 0.3s; }
+        .scratchpad:focus { outline: none; border-color: var(--primary); }
+        .author-link { color: var(--primary); text-decoration: none; transition: color 0.2s; }
+        .author-link:hover { color: var(--primary-hover); text-decoration: underline; }
+
+        /* Modal 2D */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.3s; }
+        .modal-overlay.hidden { opacity: 0; pointer-events: none; }
+        .modal-content { background: var(--bg-sidebar); padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.3); display: flex; gap: 24px; color: var(--text-main); transform: scale(1); transition: transform 0.3s; }
+        .modal-overlay.hidden .modal-content { transform: scale(0.95); }
+        .modal-sidebar { width: 280px; display: flex; flex-direction: column; gap: 12px; }
+        .modal-sidebar h4 { margin: 10px 0 5px 0; color: var(--primary); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .modal-sidebar textarea { background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; height: 100px; resize: none; font-family: 'Fira Code', monospace; font-size: 12px; transition: 0.3s;}
+        #profileCanvas { background: #fff; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); touch-action: none; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        #closeModalBtn { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; margin-top: 10px;}
+        #closeModalBtn:hover { background: var(--danger); color: white; border-color: var(--danger); }
+        
+        #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--success); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; opacity: 0; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 3000; pointer-events: none; box-shadow: 0 10px 20px rgba(46, 213, 115, 0.2); }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <nav id="top-navbar">
+        <div class="nav-brand">NoadD.Vo Area of Plane Region Studio</div>
+        <div class="nav-actions">
+            <button id="toggleThemeBtn" class="nav-btn" title="Đổi giao diện Sáng / Tối">🌓 Giao diện</button>
+            <button id="saveWorkspaceBtn" class="nav-btn" title="Lưu lại cấu hình hệ thống">💾 Lưu Cấu Hình</button>
+        </div>
+    </nav>
+
+    <div id="app-layout">
+        
+        <!-- CỘT TRÁI: Phân Tích & Xuất Dữ Liệu -->
+        <aside id="left-sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header">
+                    <h3>Phân Tích & Xuất</h3>
+                </div>
+                <div class="sidebar-content">
+
+                    <div class="btn-group" style="margin-bottom: 24px;">
+                        <button id="downloadLatexFileBtn" class="action-btn secondary" style="grid-column: span 2; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; border: none;">📥 Tải File LaTeX (.tex) Mặt Phẳng</button>
+                        <button id="exportBtn" class="action-btn primary" style="grid-column: span 2;">📸 Tải Ảnh PNG</button>
+                        <button id="exportLatex2DBtn" class="action-btn latex">📜 Copy LaTeX (TikZ)</button>
+                        <button id="exportManimBtn" class="action-btn" style="background: linear-gradient(135deg, #3776AB 0%, #1f425f 100%);">🐍 Copy Manim</button>
+                        <button id="show2DBtn" class="action-btn graph">📊 Cài đặt Đồ Thị & Zoom</button>
+                    </div>
+
+                    <div class="result-box">
+                        <div class="result-title">Kết quả Tính toán</div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px;">CÔNG THỨC CHUNG:</div>
+                        <div id="formulaArea" class="math-display area"></div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 15px; margin-bottom: 5px;">TỔNG DIỆN TÍCH (S):</div>
+                        <div id="formulaV" class="math-display vol"></div>
+                    </div>
+
+                    <div class="result-box" style="margin-top: 16px;">
+                        <div class="result-title">📝 Bảng Nháp</div>
+                        <textarea id="scratchpad" class="scratchpad" placeholder="Ghi chú công thức, ý tưởng, lưu ý..."></textarea>
+                    </div>
+
+                    <div class="result-box" style="margin-top: 16px; font-size: 13px; color: var(--text-muted);">
+                        <div class="result-title">👨‍💻 Giới Thiệu Tác Giả</div>
+                        <div style="margin-bottom: 6px;"><strong>Name:</strong> <span style="color: var(--text-main);">NoadD.Vo</span></div>
+                        <div style="margin-bottom: 6px;"><strong>Gmail:</strong> <span style="color: var(--text-main);">dangnguyen402042@gmail.com</span></div>
+                        <div style="margin-bottom: 6px;"><strong>Phone:</strong> <span style="color: var(--text-main);">0975204867</span></div>
+                        <div style="margin-bottom: 6px;"><strong>Facebook:</strong> <a href="https://www.facebook.com/nguyene.vox" target="_blank" class="author-link">nguyene.vox</a></div>
+                        
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <span>👁️ Lượt truy cập hôm nay:</span>
+                            <span id="daily-visits" style="background: rgba(255, 127, 80, 0.1); color: var(--primary); padding: 2px 10px; border-radius: 12px; font-weight: bold;">--</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </aside>
+
+        <!-- VÙNG GIỮA: MẶT PHẲNG CHÍNH -->
+        <main id="center-view">
+            <button id="toggleLeftBtn" class="toggle-btn" title="Đóng/Mở Bảng Phân Tích"><span>☰</span> Phân Tích</button>
+            <button id="toggleRightBtn" class="toggle-btn" title="Đóng/Mở Bảng Thiết Lập">Thiết Lập <span>⚙️</span></button>
+            
+            <div class="floating-controls">
+                <button id="playBtn" class="float-btn play" title="Phát/Tạm dừng">▶</button>
+                <button id="fitCameraBtn" class="float-btn fit" title="Tự động vừa vặn góc nhìn">🎯</button>
+                <button id="resetCameraBtn" class="float-btn reset" title="Reset góc nhìn">⟲</button>
+                
+                <div class="float-item" style="margin-left: 10px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Tô màu:</span>
+                    <input type="range" id="fillSlider" min="0" max="100" value="100">
+                    <span id="fillVal" style="width: 40px; display: inline-block; color: var(--primary); font-family: monospace;">100%</span>
+                </div>
+                
+                <div class="float-divider"></div>
+
+                <div class="float-item">
+                    <label title="Hiển thị lưới tọa độ" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <input type="checkbox" id="toggleGrid" checked> 🌐 Lưới
+                    </label>
+                </div>
+
+                <div class="float-item">
+                    <label title="Hiển thị trục tọa độ" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <input type="checkbox" id="toggleAxes" checked> 📏 Trục
+                    </label>
+                </div>
+
+                <div class="float-item">
+                    <label title="Hiển thị khung dây diện tích" style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        <input type="checkbox" id="toggleWireframe"> 🕸️ Khung
+                    </label>
+                </div>
+            </div>
+
+            <div id="canvas-container"></div>
+        </main>
+
+        <!-- CỘT PHẢI: Thiết Lập Hàm -->
+        <aside id="right-sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header">
+                    <h3>Cài Đặt Miền Diện Tích</h3>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="undoBtn" class="nav-btn" style="padding: 4px 8px; font-size: 14px;" title="Quay lại thao tác trước (Undo)" disabled>↩️</button>
+                        <button id="redoBtn" class="nav-btn" style="padding: 4px 8px; font-size: 14px;" title="Tiến tới thao tác sau (Redo)" disabled>↪️</button>
+                    </div>
+                </div>
+                <div class="sidebar-content">
+                    
+                    <!-- BẢNG DÁN NHANH HÀM SỐ -->
+                    <div class="quick-paste-box">
+                        <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-main); display: flex; justify-content: space-between;">
+                            <span>⚡ Nhập Nhanh Miền Phẳng</span>
+                            <span title="Định dạng: f_trên(x) ; g_dưới(x) ; a ; b&#10;Ví dụ:&#10;sqrt(x) ; x^2/8 ; 0 ; 4" style="cursor: help; color: var(--primary);">[?]</span>
+                        </div>
+                        <textarea id="quickPasteInput" placeholder="Dán hàm tại đây... (Mỗi dòng 1 miền phẳng)&#10;Định dạng: f_trên(x) ; g_dưới(x) ; a ; b&#10;VD: sqrt(x) ; x^2/8 ; 0 ; 4"></textarea>
+                        <button id="applyQuickPasteBtn" class="action-btn primary" style="width: 100%; padding: 8px; margin-top: 8px;">🚀 Thêm Hàng Loạt Miền</button>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <button id="addRegionBtn" class="action-btn primary" style="flex: 1; margin-right: 10px;">➕ Thêm Miền Diện Tích</button>
+                        <button id="clearUnpinnedBtn" class="action-btn secondary" style="color: var(--danger); border-color: var(--danger); flex: 1;" title="Xóa các vùng không được ghim">🗑️ Dọn Dẹp Nháp</button>
+                    </div>
+
+                    <!-- DANH SÁCH CÁC MIỀN PHẲNG -->
+                    <div id="regions-list"></div>
+                    
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- MODAL 2D NÂNG CAO -->
+    <div id="modal2D" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-sidebar">
+                <div class="modal-header">
+                    <h2 style="margin:0; font-size: 18px; color:var(--primary);">Cài Đặt Đồ Thị 2D</h2>
+                </div>
+                
+                <h4>Tên trục tọa độ</h4>
+                <div class="bounds-row">
+                    <div class="input-row"><label>Tên X</label><input type="text" id="gXLabel" value="x"></div>
+                    <div class="input-row"><label>Tên Y</label><input type="text" id="gYLabel" value="y"></div>
+                </div>
+
+                <h4>Giới hạn trục tọa độ</h4>
+                <div class="bounds-row">
+                    <div class="input-row"><label>X min</label><input type="number" id="gXmin" value="-1" step="0.5"></div>
+                    <div class="input-row"><label>X max</label><input type="number" id="gXmax" value="5" step="0.5"></div>
+                </div>
+                <div class="bounds-row">
+                    <div class="input-row"><label>Y min</label><input type="number" id="gYmin" value="-1" step="0.5"></div>
+                    <div class="input-row"><label>Y max</label><input type="number" id="gYmax" value="5" step="0.5"></div>
+                </div>
+
+                <h4>Điểm tùy chỉnh</h4>
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Định dạng: x, y, Tên điểm</div>
+                <textarea id="customPoints" spellcheck="false">0, 0, O
+4, 0, A
+2, 0, M
+4, 4, B
+0, 4, C
+2, 2, I</textarea>
+                
+                <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <button id="updateGraphBtn" class="action-btn primary">🔄 Cập nhật Đồ thị</button>
+                    <button id="export2DPNGBtn" class="action-btn" style="background: linear-gradient(135deg, #10ac84 0%, #2ecc71 100%); border: none; color: white;">📸 Tải Ảnh PNG (Đáy)</button>
+                    <button id="exportLatexModalBtn" class="action-btn latex">📜 Sao chép mã LaTeX (TikZ)</button>
+                    <button id="closeModalBtn">Đóng Bảng</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <canvas id="profileCanvas" width="500" height="500"></canvas>
+                <div style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+                    💡 Cuộn chuột (Scroll) trên khu vực đồ thị để Zoom (Thu phóng)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Thông báo!</div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let isLightTheme = false;
+        let isPlaying = false;
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.background = isError ? 'var(--danger)' : 'var(--success)';
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        // --- HỆ THỐNG LỊCH SỬ (UNDO / REDO) ---
+        let regionCounter = 0;
+        let appHistory = [];
+        let historyIndex = -1;
+        let isRestoring = false;
+
+        function createRegionCard(id, data = {}) {
+            const d = Object.assign({
+                enable: true, isLocked: false, tag: '', orientation: 'x',
+                funcTop: 'sqrt(x)', funcBot: 'x^2 / 8', boundA: '0', boundB: '4',
+                colorRegion: '#ff7f50'
+            }, data);
+
+            const isY = d.orientation === 'y';
+            const topLbl = isY ? 'Phải $f(y)$' : 'Trên $f(x)$';
+            const botLbl = isY ? 'Trái $g(y)$' : 'Dưới $g(x)$';
+            const aLbl = isY ? 'Từ $c$' : 'Từ $a$';
+            const bLbl = isY ? 'Đến $d$' : 'Đến $b$';
+
+            return `
+            <div class="config-card region-card" data-id="${id}" id="card_${id}">
+                <div class="func-header" style="border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <input type="checkbox" id="enable_${id}" ${d.enable ? 'checked' : ''}> Miền ${id}
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="text" id="tag_${id}" value="${d.tag}" placeholder="Nhãn (VD: Cánh hoa)" style="width: 80px; padding: 4px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);">
+                        <label style="cursor: pointer; display: flex; align-items: center; background: var(--bg-main); border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 4px;" title="Ghim/Khóa miền này lại">
+                            <input type="checkbox" id="lock_${id}" ${d.isLocked ? 'checked' : ''} style="margin-right: 4px; width:12px; height:12px;"> 📌
+                        </label>
+                        <input type="color" id="color_${id}" value="${d.colorRegion}">
+                        <button class="delete-btn" data-target="card_${id}" title="Xóa miền">&times;</button>
+                    </div>
+                </div>
+                
+                <div class="input-row"><label style="width: 100%;">Trục tính phân:</label></div>
+                <select class="orientation-select" data-id="${id}" id="orientation_${id}" style="margin-bottom: 12px; width: 100%;">
+                    <option value="x" ${d.orientation === 'x' ? 'selected' : ''}>Tích phân theo biến x (dx)</option>
+                    <option value="y" ${d.orientation === 'y' ? 'selected' : ''}>Tích phân theo biến y (dy)</option>
+                </select>
+
+                <div class="input-row"><label id="lblFuncTop_${id}" style="width: 80px;">${topLbl}</label><input type="text" id="funcTop_${id}" value="${d.funcTop}"></div>
+                <div class="input-row"><label id="lblFuncBot_${id}" style="width: 80px;">${botLbl}</label><input type="text" id="funcBot_${id}" value="${d.funcBot}"></div>
+                <div class="bounds-row">
+                    <div class="input-row"><label id="lblBoundA_${id}" style="width: 40px;">${aLbl}</label><input type="text" id="boundA_${id}" value="${d.boundA}"></div>
+                    <div class="input-row"><label id="lblBoundB_${id}" style="width: 40px;">${bLbl}</label><input type="text" id="boundB_${id}" value="${d.boundB}"></div>
+                </div>
+            </div>`;
+        }
+
+        function getCurrentState() {
+            const state = { regions: [] };
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                state.regions.push({
+                    id: id,
+                    enable: document.getElementById(`enable_${id}`).checked,
+                    tag: document.getElementById(`tag_${id}`).value,
+                    isLocked: document.getElementById(`lock_${id}`).checked,
+                    orientation: document.getElementById(`orientation_${id}`).value,
+                    funcTop: document.getElementById(`funcTop_${id}`).value,
+                    funcBot: document.getElementById(`funcBot_${id}`).value,
+                    boundA: document.getElementById(`boundA_${id}`).value,
+                    boundB: document.getElementById(`boundB_${id}`).value,
+                    colorRegion: document.getElementById(`color_${id}`).value
+                });
+            });
+            return JSON.stringify(state);
+        }
+
+        function updateUndoRedoUI() {
+            document.getElementById('undoBtn').disabled = historyIndex <= 0;
+            document.getElementById('redoBtn').disabled = historyIndex >= appHistory.length - 1;
+        }
+
+        function saveState() {
+            if (isRestoring) return;
+            const state = getCurrentState();
+            if (historyIndex >= 0 && appHistory[historyIndex] === state) return;
+
+            if (historyIndex < appHistory.length - 1) {
+                appHistory = appHistory.slice(0, historyIndex + 1);
+            }
+            appHistory.push(state);
+            if (appHistory.length > 30) appHistory.shift(); else historyIndex++;
+            updateUndoRedoUI();
+        }
+
+        function restoreState(index) {
+            if (index < 0 || index >= appHistory.length) return;
+            isRestoring = true;
+            const state = JSON.parse(appHistory[index]);
+            
+            document.getElementById('regions-list').innerHTML = '';
+            
+            let maxId = 0;
+            state.regions.forEach(d => {
+                const cid = parseInt(d.id);
+                if (cid > maxId) maxId = cid;
+                document.getElementById('regions-list').insertAdjacentHTML('beforeend', createRegionCard(cid, d));
+            });
+            regionCounter = maxId;
+
+            updateGeometry();
+            isRestoring = false;
+            updateUndoRedoUI();
+        }
+
+        document.getElementById('undoBtn').addEventListener('click', () => { if (historyIndex > 0) { historyIndex--; restoreState(historyIndex); } });
+        document.getElementById('redoBtn').addEventListener('click', () => { if (historyIndex < appHistory.length - 1) { historyIndex++; restoreState(historyIndex); } });
+
+        // --- SỰ KIỆN DANH SÁCH MIỀN ---
+        document.getElementById('addRegionBtn').addEventListener('click', () => {
+            regionCounter++;
+            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            document.getElementById('regions-list').insertAdjacentHTML('beforeend', createRegionCard(regionCounter, {
+                colorRegion: randomColor
+            }));
+            updateGeometry(); saveState();
+        });
+
+        document.getElementById('regions-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                document.getElementById(e.target.dataset.target).remove();
+                updateGeometry(); saveState();
+            }
+        });
+        
+        document.getElementById('regions-list').addEventListener('change', (e) => { 
+            if (e.target.classList.contains('orientation-select')) {
+                const id = e.target.dataset.id;
+                const isY = e.target.value === 'y';
+                document.getElementById(`lblFuncTop_${id}`).innerHTML = isY ? 'Phải $f(y)$' : 'Trên $f(x)$';
+                document.getElementById(`lblFuncBot_${id}`).innerHTML = isY ? 'Trái $g(y)$' : 'Dưới $g(x)$';
+                document.getElementById(`lblBoundA_${id}`).innerHTML = isY ? 'Từ $c$' : 'Từ $a$';
+                document.getElementById(`lblBoundB_${id}`).innerHTML = isY ? 'Đến $d$' : 'Đến $b$';
+                
+                let t = document.getElementById(`funcTop_${id}`).value;
+                let b = document.getElementById(`funcBot_${id}`).value;
+                document.getElementById(`funcTop_${id}`).value = t.replace(/x/g, 'TEMP').replace(/y/g, 'x').replace(/TEMP/g, 'y');
+                document.getElementById(`funcBot_${id}`).value = b.replace(/x/g, 'TEMP').replace(/y/g, 'x').replace(/TEMP/g, 'y');
+            }
+            if(!isRestoring) { updateGeometry(); saveState(); }
+        });
+
+        document.getElementById('regions-list').addEventListener('input', () => { if(!isRestoring) updateGeometry(); });
+
+        // NHẬP NHANH HÀM SỐ
+        document.getElementById('applyQuickPasteBtn').addEventListener('click', () => {
+            const text = document.getElementById('quickPasteInput').value;
+            if (!text.trim()) { showToast("Vui lòng nhập cấu hình miền!"); return; }
+
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`lock_${id}`).checked) document.getElementById(`enable_${id}`).checked = false;
+            });
+
+            const lines = text.split('\n');
+            let added = false;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const delimiter = line.includes(';') ? ';' : ',';
+                const parts = line.split(delimiter);
+                
+                if (parts.length >= 4) {
+                    let fTop = parts[0].trim().replace(/^.*?=\s*/, '');
+                    let fBot = parts[1].trim().replace(/^.*?=\s*/, '');
+                    const a = parts[2].trim().replace(',', '.'); 
+                    const b = parts[3].trim().replace(',', '.');
+                    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                    
+                    regionCounter++;
+                    document.getElementById('regions-list').insertAdjacentHTML('beforeend', createRegionCard(regionCounter, {
+                        funcTop: fTop, funcBot: fBot, boundA: a, boundB: b,
+                        colorRegion: randomColor, tag: "Paste"
+                    }));
+                    added = true;
+                }
+            });
+
+            if (added) {
+                updateGeometry(); saveState();
+                document.getElementById('quickPasteInput').value = '';
+                showToast(`Đã thêm miền đồ thị thành công!`);
+            } else {
+                showToast("Sai định dạng! Phải là: f(x) ; g(x) ; a ; b", true);
+            }
+        });
+
+        // DỌN DẸP
+        document.getElementById('clearUnpinnedBtn').addEventListener('click', () => {
+            let changed = false;
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`lock_${id}`).checked) { card.remove(); changed = true; }
+            });
+            if (changed) { updateGeometry(); saveState(); showToast("Đã dọn dẹp xong các nháp!"); } 
+            else { showToast("Không có miền nháp nào để dọn (Tất cả đều đã ghim)!"); }
+        });
+
+        // --- 2. KHỞI TẠO 3D (Z HƯỚNG LÊN CHO MẶT PHẲNG OXY ĐẸP) ---
+        const centerView = document.getElementById('center-view');
+        const scene = new THREE.Scene(); 
+        scene.background = new THREE.Color(0x0f1115);
+        
+        let initWidth = centerView.clientWidth || window.innerWidth - 700;
+        let initHeight = centerView.clientHeight || window.innerHeight;
+
+        const camera = new THREE.PerspectiveCamera(45, initWidth / initHeight, 0.1, 1000); 
+        camera.position.set(0, 0, 15); // Nhìn thẳng từ trên xuống mặt phẳng Oxy
+        camera.up.set(0, 1, 0); // Y hướng lên
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true }); 
+        renderer.setSize(initWidth, initHeight); 
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8)); 
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5); 
+        dirLight.position.set(5, 5, 10); 
+        scene.add(dirLight);
+        
+        let axesHelper = new THREE.Group();
+        const origin = new THREE.Vector3(0, 0, 0);
+        const axisLength = 8; const headLength = 0.6; const headWidth = 0.3;
+        axesHelper.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, axisLength, 0xff0000, headLength, headWidth)); 
+        axesHelper.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), origin, axisLength, 0x00ff00, headLength, headWidth)); 
+        scene.add(axesHelper);
+        
+        let gridHelper = new THREE.GridHelper(20, 20, 0x2a2d35, 0x181a20);
+        gridHelper.rotation.x = Math.PI / 2; // Xoay lưới nằm trên Oxy
+        scene.add(gridHelper);
+        
+        const controls = new OrbitControls(camera, renderer.domElement); 
+        controls.enableDamping = true;
+        // controls.enableRotate = false; // Có thể bật/tắt cái này nếu chỉ muốn nhìn 2D. Nhưng để 3D cho ảo diệu.
+
+        let activeMeshes = [];
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const width = entry.contentRect.width;
+                const height = entry.contentRect.height;
+                if(width > 0 && height > 0) {
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(width, height);
+                }
+            }
+        });
+        resizeObserver.observe(centerView);
+
+        document.getElementById('toggleThemeBtn').addEventListener('click', () => {
+            isLightTheme = !isLightTheme;
+            scene.remove(gridHelper);
+            if (isLightTheme) {
+                document.body.classList.add('light-theme');
+                scene.background = new THREE.Color(0xf8fafc);
+                gridHelper = new THREE.GridHelper(20, 20, 0xcbd5e1, 0xe2e8f0);
+            } else {
+                document.body.classList.remove('light-theme');
+                scene.background = new THREE.Color(0x0f1115);
+                gridHelper = new THREE.GridHelper(20, 20, 0x2a2d35, 0x181a20);
+            }
+            gridHelper.rotation.x = Math.PI / 2;
+            gridHelper.visible = document.getElementById('toggleGrid').checked;
+            scene.add(gridHelper);
+            renderer.render(scene, camera);
+        });
+
+        document.getElementById('saveWorkspaceBtn').addEventListener('click', () => {
+            const stateJSON = getCurrentState();
+            const state = JSON.parse(stateJSON);
+            state.globals = {
+                fillSlider: document.getElementById('fillSlider').value,
+                toggleGrid: document.getElementById('toggleGrid').checked,
+                toggleAxes: document.getElementById('toggleAxes').checked,
+                toggleWireframe: document.getElementById('toggleWireframe').checked,
+                toggleTheme: isLightTheme,
+                customPoints: document.getElementById('customPoints').value,
+                gXLabel: document.getElementById('gXLabel').value, gYLabel: document.getElementById('gYLabel').value,
+                gXmin: document.getElementById('gXmin').value, gXmax: document.getElementById('gXmax').value,
+                gYmin: document.getElementById('gYmin').value, gYmax: document.getElementById('gYmax').value,
+                scratchpad: document.getElementById('scratchpad').value
+            };
+            const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'PlaneArea_Workspace.json'; a.click();
+            showToast("Đã lưu cấu hình về máy!");
+        });
+
+        // 🎯 TÍNH NĂNG VỪA VẶN GÓC NHÌN (FIT VIEW)
+        document.getElementById('fitCameraBtn').addEventListener('click', () => {
+            if (activeMeshes.length === 0) return;
+            const box = new THREE.Box3();
+            activeMeshes.forEach(m => box.expandByObject(m));
+            if (box.isEmpty()) return;
+
+            const center = new THREE.Vector3(); box.getCenter(center);
+            const size = new THREE.Vector3(); box.getSize(size);
+
+            const maxDim = Math.max(size.x, size.y);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraDistance = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5; 
+            if (cameraDistance < 5) cameraDistance = 5;
+
+            // Đặt camera nhìn thẳng chính diện vào mặt phẳng Z=0
+            camera.position.set(center.x, center.y, cameraDistance);
+            controls.target.copy(center); controls.target.z = 0;
+            controls.update(); renderer.render(scene, camera);
+            showToast("Đã điều chỉnh tự động vừa vặn góc nhìn!");
+        });
+
+        // --- TOÁN HỌC ---
+        function calculateArea(fTop, fBot, min, max, varName) {
+            const n = 200, h = (max - min) / n; let sum = 0;
+            try {
+                const f = (val) => { 
+                    let t = math.evaluate(fTop, { [varName]: val }); 
+                    let b = math.evaluate(fBot, { [varName]: val }); 
+                    if(isNaN(t)) t=0; if(isNaN(b)) b=0;
+                    return Math.abs(t - b); 
+                };
+                sum = f(min) + f(max); for (let i = 1; i < n; i++) sum += f(min + i * h) * (i % 2 === 0 ? 2 : 4);
+                return (sum * h) / 3;
+            } catch (e) { return 0; }
+        }
+
+        function updateGeometry() {
+            activeMeshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }); activeMeshes = [];
+            let totalArea = 0;
+            const fillPercent = parseFloat(document.getElementById('fillSlider').value) / 100;
+
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`enable_${id}`).checked) return;
+                try {
+                    const orientation = document.getElementById(`orientation_${id}`).value;
+                    const mn = math.evaluate(document.getElementById(`boundA_${id}`).value);
+                    const mx = math.evaluate(document.getElementById(`boundB_${id}`).value);
+                    if (mn >= mx) return;
+                    
+                    const fTopStr = document.getElementById(`funcTop_${id}`).value;
+                    const fBotStr = document.getElementById(`funcBot_${id}`).value;
+                    const varName = orientation === 'x' ? 'x' : 'y';
+                    
+                    const area = calculateArea(fTopStr, fBotStr, mn, mx, varName);
+                    totalArea += area;
+
+                    const currentLimit = mn + fillPercent * (mx - mn);
+                    if (currentLimit <= mn) return;
+
+                    // Vẽ bằng ShapeGeometry
+                    const steps = 100;
+                    const pts = [];
+                    for(let i=0; i<=steps; i++) {
+                        let val = mn + i * (currentLimit - mn) / steps;
+                        let b = math.evaluate(fBotStr, { [varName]: val });
+                        if(isNaN(b)) b=0;
+                        pts.push(new THREE.Vector2(val, b));
+                    }
+                    for(let i=steps; i>=0; i--) {
+                        let val = mn + i * (currentLimit - mn) / steps;
+                        let t = math.evaluate(fTopStr, { [varName]: val });
+                        if(isNaN(t)) t=0;
+                        pts.push(new THREE.Vector2(val, t));
+                    }
+
+                    const shape = new THREE.Shape(pts);
+                    const geom = new THREE.ShapeGeometry(shape);
+
+                    if (orientation === 'y') {
+                        const posAttr = geom.attributes.position;
+                        for(let i=0; i<posAttr.count; i++) {
+                            let x = posAttr.getX(i);
+                            let y = posAttr.getY(i);
+                            posAttr.setXYZ(i, y, x, 0);
+                        }
+                        geom.computeVertexNormals();
+                    }
+
+                    const isWireframe = document.getElementById('toggleWireframe').checked;
+                    const color = document.getElementById(`color_${id}`).value;
+                    const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.7, wireframe: isWireframe });
+                    
+                    const mesh = new THREE.Mesh(geom, material);
+                    
+                    // Thêm viền
+                    if(!isWireframe) {
+                        const edges = new THREE.EdgesGeometry(geom);
+                        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: color, linewidth: 2 }));
+                        mesh.add(line);
+                    }
+
+                    scene.add(mesh); activeMeshes.push(mesh);
+                } catch (e) {}
+            });
+            katex.render(`S = \\int_{a}^{b} |f(x) - g(x)| \\,\\mathrm{d}x`, document.getElementById('formulaArea'), { throwOnError: false });
+            katex.render(`S_{tổng} \\approx ${totalArea.toFixed(3)} \\text{ đvdt}`, document.getElementById('formulaV'), { throwOnError: false });
+        }
+
+        // --- 3. ĐỒ THỊ 2D & ZOOM ---
+        function drawProfile2D() {
+            const canvas = document.getElementById('profileCanvas'); const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const minX = parseFloat(document.getElementById('gXmin').value), maxX = parseFloat(document.getElementById('gXmax').value);
+            const minY = parseFloat(document.getElementById('gYmin').value), maxY = parseFloat(document.getElementById('gYmax').value);
+            const scaleX = canvas.width / (maxX - minX); const scaleY = canvas.height / (maxY - minY);
+            const toX = (val) => (val - minX) * scaleX; const toY = (val) => canvas.height - (val - minY) * scaleY;
+
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+            for(let i = Math.floor(minX); i <= Math.ceil(maxX); i++) { ctx.beginPath(); ctx.moveTo(toX(i), 0); ctx.lineTo(toX(i), canvas.height); ctx.stroke(); }
+            for(let i = Math.floor(minY); i <= Math.ceil(maxY); i++) { ctx.beginPath(); ctx.moveTo(0, toY(i)); ctx.lineTo(canvas.width, toY(i)); ctx.stroke(); }
+            
+            ctx.strokeStyle = '#334155'; ctx.fillStyle = '#334155'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(toX(0), canvas.height); ctx.lineTo(toX(0), 30); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toX(0), 15); ctx.lineTo(toX(0) - 6, 30); ctx.lineTo(toX(0) + 6, 30); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(canvas.width - 30, toY(0)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(canvas.width - 15, toY(0)); ctx.lineTo(canvas.width - 30, toY(0) - 6); ctx.lineTo(canvas.width - 30, toY(0) + 6); ctx.closePath(); ctx.fill();
+
+            const xLabel = document.getElementById('gXLabel').value || 'x';
+            const yLabel = document.getElementById('gYLabel').value || 'y';
+            ctx.fillStyle = '#1e293b'; 
+            ctx.font = 'italic bold 16px Segoe UI';
+            let xLabelY = toY(0); if (xLabelY < 30) xLabelY = 30; if (xLabelY > canvas.height - 20) xLabelY = canvas.height - 20;
+            ctx.fillText(xLabel, canvas.width - 45, xLabelY - 15);
+            let yLabelX = toX(0); if (yLabelX < 20) yLabelX = 20; if (yLabelX > canvas.width - 40) yLabelX = canvas.width - 40;
+            ctx.fillText(yLabel, yLabelX + 15, 30);
+
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`enable_${id}`).checked) return;
+                try {
+                    const orientation = document.getElementById(`orientation_${id}`).value;
+                    const a = math.evaluate(document.getElementById(`boundA_${id}`).value), b = math.evaluate(document.getElementById(`boundB_${id}`).value);
+                    const fStr = document.getElementById(`funcTop_${id}`).value, gStr = document.getElementById(`funcBot_${id}`).value;
+                    const color = document.getElementById(`color_${id}`).value;
+                    
+                    ctx.beginPath();
+                    if (orientation === 'x') {
+                        ctx.moveTo(toX(a), toY(math.evaluate(gStr, { x: a })));
+                        for (let v = a; v <= b; v += 0.05) { let r = math.evaluate(gStr, { x: v }); if(!isNaN(r)) ctx.lineTo(toX(v), toY(r)); }
+                        for (let v = b; v >= a; v -= 0.05) { let r = math.evaluate(fStr, { x: v }); if(!isNaN(r)) ctx.lineTo(toX(v), toY(r)); }
+                    } else {
+                        ctx.moveTo(toX(math.evaluate(gStr, { y: a })), toY(a));
+                        for (let v = a; v <= b; v += 0.05) { let r = math.evaluate(gStr, { y: v }); if(!isNaN(r)) ctx.lineTo(toX(r), toY(v)); }
+                        for (let v = b; v >= a; v -= 0.05) { let r = math.evaluate(fStr, { y: v }); if(!isNaN(r)) ctx.lineTo(toX(r), toY(v)); }
+                    }
+                    ctx.closePath();
+                    
+                    const isWireframe = document.getElementById('toggleWireframe').checked;
+                    if (isWireframe) {
+                        const pCanvas = document.createElement('canvas');
+                        pCanvas.width = 8; pCanvas.height = 8;
+                        const pCtx = pCanvas.getContext('2d');
+                        pCtx.strokeStyle = color; pCtx.lineWidth = 1;
+                        pCtx.beginPath(); pCtx.moveTo(0, 8); pCtx.lineTo(8, 0); pCtx.stroke();
+                        ctx.fillStyle = ctx.createPattern(pCanvas, 'repeat');
+                    } else {
+                        ctx.fillStyle = color + '44';
+                    }
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#ff4757'; ctx.lineWidth = 2; ctx.beginPath();
+                    if (orientation === 'x') {
+                        for(let v = a; v <= b; v+=0.05) { let r = math.evaluate(fStr, {x:v}); v===a ? ctx.moveTo(toX(v), toY(r)) : ctx.lineTo(toX(v), toY(r)); }
+                    } else {
+                        for(let v = a; v <= b; v+=0.05) { let r = math.evaluate(fStr, {y:v}); v===a ? ctx.moveTo(toX(r), toY(v)) : ctx.lineTo(toX(r), toY(v)); }
+                    }
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#1e90ff'; ctx.lineWidth = 2; ctx.beginPath();
+                    if (orientation === 'x') {
+                        for(let v = a; v <= b; v+=0.05) { let r = math.evaluate(gStr, {x:v}); v===a ? ctx.moveTo(toX(v), toY(r)) : ctx.lineTo(toX(v), toY(r)); }
+                    } else {
+                        for(let v = a; v <= b; v+=0.05) { let r = math.evaluate(gStr, {y:v}); v===a ? ctx.moveTo(toX(r), toY(v)) : ctx.lineTo(toX(r), toY(v)); }
+                    }
+                    ctx.stroke();
+                } catch (e) {}
+            });
+
+            ctx.fillStyle = '#1e293b'; ctx.font = 'bold 14px Segoe UI';
+            const ptsLines = document.getElementById('customPoints').value.split('\n');
+            ptsLines.forEach(line => {
+                const parts = line.split(',');
+                if(parts.length >= 3) {
+                    const x = parseFloat(parts[0].trim()), y = parseFloat(parts[1].trim()), label = parts[2].trim();
+                    if(!isNaN(x) && !isNaN(y)) {
+                        ctx.beginPath(); ctx.arc(toX(x), toY(y), 5, 0, Math.PI*2); ctx.fill();
+                        ctx.fillText(label, toX(x) + 8, toY(y) - 8);
+                    }
+                }
+            });
+        }
+
+        // TÍNH NĂNG ZOOM CHUỘT (Cuộn để thu phóng đồ thị)
+        const profileCanvas = document.getElementById('profileCanvas');
+        profileCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9; 
+
+            let xMin = parseFloat(document.getElementById('gXmin').value);
+            let xMax = parseFloat(document.getElementById('gXmax').value);
+            let yMin = parseFloat(document.getElementById('gYmin').value);
+            let yMax = parseFloat(document.getElementById('gYmax').value);
+
+            const rect = profileCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const dataX = xMin + (mouseX / profileCanvas.width) * (xMax - xMin);
+            const dataY = yMin + ((profileCanvas.height - mouseY) / profileCanvas.height) * (yMax - yMin);
+
+            const newXMin = dataX - (dataX - xMin) * zoomFactor;
+            const newXMax = dataX + (xMax - dataX) * zoomFactor;
+            const newYMin = dataY - (dataY - yMin) * zoomFactor;
+            const newYMax = dataY + (yMax - dataY) * zoomFactor;
+
+            document.getElementById('gXmin').value = newXMin.toFixed(2);
+            document.getElementById('gXmax').value = newXMax.toFixed(2);
+            document.getElementById('gYmin').value = newYMin.toFixed(2);
+            document.getElementById('gYmax').value = newYMax.toFixed(2);
+
+            drawProfile2D();
+        }, { passive: false });
+
+        // LOGIC KÉO THẢ ĐIỂM (DRAG & DROP 2D)
+        let draggedPointInfo = null;
+        function handlePointDragStart(e) {
+            const rect = profileCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+            
+            const minX = parseFloat(document.getElementById('gXmin').value);
+            const maxX = parseFloat(document.getElementById('gXmax').value);
+            const minY = parseFloat(document.getElementById('gYmin').value);
+            const maxY = parseFloat(document.getElementById('gYmax').value);
+            const scaleX = profileCanvas.width / (maxX - minX);
+            const scaleY = profileCanvas.height / (maxY - minY);
+            const toX = (val) => (val - minX) * scaleX;
+            const toY = (val) => profileCanvas.height - (val - minY) * scaleY;
+
+            const lines = document.getElementById('customPoints').value.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                const parts = lines[i].split(',');
+                if (parts.length >= 3) {
+                    const x = parseFloat(parts[0].trim()), y = parseFloat(parts[1].trim());
+                    if (!isNaN(x) && !isNaN(y)) {
+                        if (Math.hypot(toX(x) - mouseX, toY(y) - mouseY) < 15) {
+                            draggedPointInfo = { index: i, label: parts[2].trim() };
+                            profileCanvas.style.cursor = 'grabbing';
+                            if (e.cancelable) e.preventDefault();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        function handlePointDragMove(e) {
+            const rect = profileCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            const minX = parseFloat(document.getElementById('gXmin').value);
+            const maxX = parseFloat(document.getElementById('gXmax').value);
+            const minY = parseFloat(document.getElementById('gYmin').value);
+            const maxY = parseFloat(document.getElementById('gYmax').value);
+            const scaleX = profileCanvas.width / (maxX - minX);
+            const scaleY = profileCanvas.height / (maxY - minY);
+
+            if (draggedPointInfo !== null) {
+                let newX = minX + (mouseX / scaleX);
+                let newY = minY + ((profileCanvas.height - mouseY) / scaleY);
+                
+                if (newX < minX) newX = minX; if (newX > maxX) newX = maxX;
+                if (newY < minY) newY = minY; if (newY > maxY) newY = maxY;
+
+                const lines = document.getElementById('customPoints').value.split('\n');
+                lines[draggedPointInfo.index] = `${newX.toFixed(2)}, ${newY.toFixed(2)}, ${draggedPointInfo.label}`;
+                document.getElementById('customPoints').value = lines.join('\n');
+                
+                drawProfile2D();
+                if (e.cancelable) e.preventDefault();
+            } else if (!e.touches) {
+                const toX = (val) => (val - minX) * scaleX;
+                const toY = (val) => profileCanvas.height - (val - minY) * scaleY;
+                const lines = document.getElementById('customPoints').value.split('\n');
+                let isHover = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const parts = lines[i].split(',');
+                    if (parts.length >= 3) {
+                        const x = parseFloat(parts[0].trim()), y = parseFloat(parts[1].trim());
+                        if (!isNaN(x) && !isNaN(y) && Math.hypot(toX(x) - mouseX, toY(y) - mouseY) < 15) {
+                            isHover = true; break;
+                        }
+                    }
+                }
+                profileCanvas.style.cursor = isHover ? 'grab' : 'default';
+            }
+        }
+
+        function handlePointDragEnd() {
+            if (draggedPointInfo) profileCanvas.style.cursor = 'grab';
+            draggedPointInfo = null;
+        }
+
+        profileCanvas.addEventListener('mousedown', handlePointDragStart);
+        profileCanvas.addEventListener('mousemove', handlePointDragMove);
+        profileCanvas.addEventListener('mouseup', handlePointDragEnd);
+        profileCanvas.addEventListener('mouseleave', () => { draggedPointInfo = null; profileCanvas.style.cursor = 'default'; });
+        profileCanvas.addEventListener('touchstart', handlePointDragStart, {passive: false});
+        profileCanvas.addEventListener('touchmove', handlePointDragMove, {passive: false});
+        profileCanvas.addEventListener('touchend', handlePointDragEnd);
+
+
+        // --- 4. HÀM SAO CHÉP & XUẤT ---
+        function copyToClipboard(text, successMsg) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px"; textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try { if (document.execCommand('copy')) showToast(successMsg); } 
+            catch (err) { console.error('Lỗi sao chép: ', err); }
+            document.body.removeChild(textArea);
+        }
+
+        function formatMathForPGF(mathStr, oldVar, newVar) { return mathStr.replace(new RegExp(oldVar, 'g'), newVar); }
+
+        function formatMathForPython(mathStr, varName) {
+            let s = mathStr.replace(/\^/g, '**');
+            s = s.replace(/\bsqrt\b/g, 'np.sqrt');
+            s = s.replace(/\bsin\b/g, 'np.sin');
+            s = s.replace(/\bcos\b/g, 'np.cos');
+            s = s.replace(/\btan\b/g, 'np.tan');
+            s = s.replace(/\bpi\b/g, 'np.pi');
+            s = s.replace(/\be\b/g, 'np.e');
+            const regex = new RegExp(`\\b${varName}\\b`, 'g');
+            s = s.replace(regex, 'v');
+            return s;
+        }
+
+        function getLatex2D() {
+            const minX = document.getElementById('gXmin').value, maxX = document.getElementById('gXmax').value;
+            const minY = document.getElementById('gYmin').value, maxY = document.getElementById('gYmax').value;
+            const xLabel = document.getElementById('gXLabel').value || 'x';
+            const yLabel = document.getElementById('gYLabel').value || 'y';
+            let tex = `% Mã TikZ/PGFPlots 2D (Diện Tích Hình Phẳng) - NoadD.Vo Studio\n\\begin{tikzpicture}\n\\begin{axis}[\n`;
+            tex += `    axis lines = middle,\n    xlabel = {$${xLabel}$}, ylabel = {$${yLabel}$},\n`;
+            tex += `    xmin=${minX}, xmax=${maxX}, ymin=${minY}, ymax=${maxY},\n`;
+            tex += `    grid = both, minor tick num = 1,\n    enlargelimits = false,\n    axis line style={shorten >=-10pt, shorten <=-10pt},\n]\n\n`;
+            
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`enable_${id}`).checked) return;
+                try {
+                    const orientation = document.getElementById(`orientation_${id}`).value;
+                    const mn = math.evaluate(document.getElementById(`boundA_${id}`).value), mx = math.evaluate(document.getElementById(`boundB_${id}`).value);
+                    const pgfTop = formatMathForPGF(document.getElementById(`funcTop_${id}`).value, orientation, 'x'); 
+                    const pgfBot = formatMathForPGF(document.getElementById(`funcBot_${id}`).value, orientation, 'x'); 
+                    const hex = document.getElementById(`color_${id}`).value.toUpperCase();
+                    
+                    tex += `\\definecolor{color${id}}{HTML}{${hex.substring(1)}}\n`;
+                    if (orientation === 'x') {
+                        tex += `\\addplot [name path=top${id}, domain=${mn}:${mx}, samples=100, thick, red] {${pgfTop}};\n`;
+                        tex += `\\addplot [name path=bot${id}, domain=${mn}:${mx}, samples=100, thick, blue] {${pgfBot}};\n`;
+                    } else {
+                        tex += `\\addplot [name path=top${id}, domain=${mn}:${mx}, samples=100, thick, red] ({${pgfTop}}, {x});\n`;
+                        tex += `\\addplot [name path=bot${id}, domain=${mn}:${mx}, samples=100, thick, blue] ({${pgfBot}}, {x});\n`;
+                    }
+                    tex += `\\addplot [color${id}!40] fill between[of=top${id} and bot${id}];\n\n`;
+                } catch(e){}
+            });
+            
+            tex += `% Custom Points\n`;
+            document.getElementById('customPoints').value.split('\n').forEach(line => {
+                const parts = line.split(',');
+                if(parts.length >= 3) {
+                    const x = parts[0].trim(), y = parts[1].trim(), label = parts[2].trim();
+                    tex += `\\node[label={45:$${label}$}, circle, fill, inner sep=1.5pt] at (axis cs: ${x}, ${y}) {};\n`;
+                }
+            });
+            tex += `\\end{axis}\n\\end{tikzpicture}`;
+            return tex;
+        }
+
+        function getManimCode() {
+            let tex = `# Mã Python (Manim) - NoadD.Vo Studio\n`;
+            tex += `from manim import *\nimport numpy as np\n\n`;
+            tex += `class PlaneAreaScene(Scene):\n`;
+            tex += `    def construct(self):\n`;
+            tex += `        axes = Axes(x_range=[-2, 8], y_range=[-2, 8])\n`;
+            tex += `        self.add(axes)\n\n`;
+            
+            document.querySelectorAll('.region-card').forEach(card => {
+                const id = card.dataset.id;
+                if (!document.getElementById(`enable_${id}`).checked) return;
+                try {
+                    const orientation = document.getElementById(`orientation_${id}`).value;
+                    const mn = math.evaluate(document.getElementById(`boundA_${id}`).value);
+                    const mx = math.evaluate(document.getElementById(`boundB_${id}`).value);
+                    const pyTop = formatMathForPython(document.getElementById(`funcTop_${id}`).value, orientation); 
+                    const pyBot = formatMathForPython(document.getElementById(`funcBot_${id}`).value, orientation); 
+                    const hex = document.getElementById(`color_${id}`).value.toUpperCase();
+                    
+                    tex += `        def f_top_${id}(v): return ${pyTop}\n`;
+                    tex += `        def f_bot_${id}(v): return ${pyBot}\n`;
+                    
+                    if (orientation === 'x') {
+                        tex += `        graph_top_${id} = axes.plot(f_top_${id}, color=RED, x_range=[${mn}, ${mx}])\n`;
+                        tex += `        graph_bot_${id} = axes.plot(f_bot_${id}, color=BLUE, x_range=[${mn}, ${mx}])\n`;
+                        tex += `        area_${id} = axes.get_area(graph_top_${id}, [${mn}, ${mx}], bounded_graph=graph_bot_${id}, color="${hex}", opacity=0.5)\n`;
+                    } else {
+                        // Manim axes.get_area works on dx. For dy, we construct a polygon manually.
+                        tex += `        area_${id} = VGroup()\n`;
+                        tex += `        pts = [axes.c2p(f_bot_${id}(v), v) for v in np.linspace(${mn}, ${mx}, 50)]\n`;
+                        tex += `        pts += [axes.c2p(f_top_${id}(v), v) for v in np.linspace(${mx}, ${mn}, 50)]\n`;
+                        tex += `        poly_${id} = Polygon(*pts, fill_color="${hex}", fill_opacity=0.5, stroke_width=0)\n`;
+                        tex += `        area_${id}.add(poly_${id})\n`;
+                    }
+                    
+                    tex += `        self.play(FadeIn(area_${id}))\n\n`;
+                } catch(e){}
+            });
+            tex += `        self.wait(2)\n`;
+            return tex;
+        }
+
+        document.getElementById('exportLatex2DBtn').addEventListener('click', () => { copyToClipboard(getLatex2D(), "Đã sao chép mã LaTeX 2D!"); });
+        document.getElementById('exportLatexModalBtn').addEventListener('click', () => { copyToClipboard(getLatex2D(), "Đã sao chép mã LaTeX 2D!"); });
+        document.getElementById('exportManimBtn').addEventListener('click', () => { copyToClipboard(getManimCode(), "Đã sao chép mã Python (Manim)!"); });
+        
+        document.getElementById('export2DPNGBtn').addEventListener('click', () => {
+            const canvas = document.getElementById('profileCanvas');
+            const link = document.createElement('a'); link.download = 'NoadDVo-2D-Area.png'; link.href = canvas.toDataURL('image/png'); link.click();
+            showToast("Đã tải ảnh đồ thị 2D!");
+        });
+        
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const oldBg = scene.background; scene.background = null; renderer.render(scene, camera);
+            const link = document.createElement('a'); link.download = 'NoadDVo-Area-Main.png'; link.href = renderer.domElement.toDataURL(); link.click();
+            scene.background = oldBg; renderer.render(scene, camera);
+            showToast("Đã tải ảnh giao diện chính!");
+        });
+
+        document.getElementById('downloadLatexFileBtn').addEventListener('click', () => {
+            const content = `\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{pgfplots}\n\\usepgfplotslibrary{fillbetween}\n\\usepackage{xcolor}\n\\pgfplotsset{compat=1.18}\n\\begin{document}\n\n\\section*{Dien Tich Hinh Phang}\n\\begin{center}\n${getLatex2D()}\n\\end{center}\n\n\\end{document}`;
+            const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'DienTich_LaTeX.tex'; a.click();
+            showToast("Đã tải file LaTeX (.tex)!");
+        });
+
+        // --- 5. LẮNG NGHE SỰ KIỆN GIAO DIỆN ---
+        const handleControlsInput = (e) => {
+            if (e.target.id !== 'toggleGrid' && e.target.id !== 'toggleWireframe' && e.target.id !== 'toggleAxes') updateGeometry();
+        };
+        document.querySelector('.floating-controls').addEventListener('input', handleControlsInput);
+
+        document.getElementById('toggleGrid').addEventListener('change', (e) => { gridHelper.visible = e.target.checked; renderer.render(scene, camera); });
+        document.getElementById('toggleAxes').addEventListener('change', (e) => { axesHelper.visible = e.target.checked; renderer.render(scene, camera); });
+        document.getElementById('toggleWireframe').addEventListener('change', (e) => { 
+            activeMeshes.forEach(mesh => { mesh.material.wireframe = e.target.checked; }); renderer.render(scene, camera);
+        });
+
+        document.getElementById('toggleLeftBtn').addEventListener('click', () => { document.getElementById('left-sidebar').classList.toggle('collapsed'); });
+        document.getElementById('toggleRightBtn').addEventListener('click', () => { document.getElementById('right-sidebar').classList.toggle('collapsed'); });
+        document.getElementById('show2DBtn').addEventListener('click', () => { document.getElementById('modal2D').classList.remove('hidden'); drawProfile2D(); });
+        document.getElementById('closeModalBtn').addEventListener('click', () => { document.getElementById('modal2D').classList.add('hidden'); });
+        document.getElementById('updateGraphBtn').addEventListener('click', drawProfile2D);
+        document.getElementById('playBtn').addEventListener('click', (e) => {
+            isPlaying = !isPlaying; 
+            e.target.innerHTML = isPlaying ? "⏸" : "▶";
+            e.target.style.background = isPlaying ? "var(--warning)" : "var(--danger)";
+        });
+        
+        document.getElementById('resetCameraBtn').addEventListener('click', () => {
+            camera.position.set(0, 0, 15); controls.target.set(0, 0, 0); controls.update(); renderer.render(scene, camera);
+            showToast("Đã đặt lại góc nhìn!");
+        });
+
+        // --- 6. BỘ ĐẾM TRUY CẬP ---
+        function initVisitorCounter() {
+            const today = new Date().toISOString().slice(0, 10);
+            let visits = localStorage.getItem('noadd_area_visits_' + today);
+            if (!visits) visits = Math.floor(Math.random() * 50) + 12; else visits = parseInt(visits, 10);
+            visits++; localStorage.setItem('noadd_area_visits_' + today, visits);
+            const visitEl = document.getElementById('daily-visits');
+            if(visitEl) visitEl.innerText = visits;
+        }
+
+        // --- 7. KHỞI CHẠY ---
+        initVisitorCounter();
+        
+        // Thêm 1 miền mẫu
+        document.getElementById('addRegionBtn').click();
+        
+        setTimeout(updateGeometry, 500); 
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isPlaying) {
+                let s = parseFloat(document.getElementById('fillSlider').value) + 0.5; 
+                if (s > 100) s = 0;
+                document.getElementById('fillSlider').value = s; 
+                document.getElementById('fillVal').innerText = Math.floor(s) + "%"; 
+                updateGeometry();
+            }
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
